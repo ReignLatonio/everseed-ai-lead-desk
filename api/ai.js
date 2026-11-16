@@ -43,7 +43,12 @@ async function askGemini(prompt) {
   const key = process.env.GEMINI_API_KEY.trim();
   const body = JSON.stringify({
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { maxOutputTokens: 1200, temperature: 0.7 },
+    generationConfig: {
+      maxOutputTokens: 2048,
+      temperature: 0.7,
+      // Gemini 2.5 "thinks" out of the same token budget; switch thinking off so answers are never cut empty
+      ...(model.includes("2.5") ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+    },
   });
   // Google AI Studio keys usually start with "AIza"; Vertex AI (express mode) keys start with "AQ."
   const studio = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
@@ -58,7 +63,10 @@ async function askGemini(prompt) {
     });
     if (r.ok) {
       const j = await r.json();
-      return (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
+      const text = (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
+      if (text) return text;
+      lastErr = "Gemini returned no text (finishReason: " + (j.candidates?.[0]?.finishReason || "unknown") + ")";
+      break;
     }
     lastErr = "Gemini " + r.status + " at " + url + ": " + (await r.text()).slice(0, 300);
     if (![400, 401, 403, 404].includes(r.status)) break; // only try the other endpoint on auth or route errors
@@ -91,6 +99,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ text });
   } catch (e) {
     console.error(e);
-    return res.status(502).json({ error: "AI request failed" });
+    // Show the provider's reason (it never contains the API key) so problems are easy to fix
+    return res.status(502).json({ error: "AI request failed", detail: String(e.message || e).slice(0, 400) });
   }
 }
