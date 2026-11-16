@@ -4,6 +4,8 @@
 // Environment variables (set in Vercel > Project > Settings > Environment Variables):
 //   ANTHROPIC_API_KEY  (option A) Claude API key from console.anthropic.com
 //   ANTHROPIC_MODEL    optional, default "claude-haiku-5-5"
+//   GROQ_API_KEY       (option C, FREE, no card) key from console.groq.com
+//   GROQ_MODEL         optional, default "llama-3.3-70b-versatile" (falls back to other Groq models)
 //   GEMINI_API_KEY     (option B) Google Gemini key from aistudio.google.com (has a free tier)
 //   GEMINI_MODEL       optional, one model or a comma-separated list (default "gemini-3.8-flash");
 //                      if busy, other Flash models on the account are tried automatically
@@ -121,8 +123,61 @@ async function askGemini(prompt) {
   throw new Error(lastErr || "No Gemini model answered");
 }
 
+// ---------- Groq (free tier, OpenAI-compatible) ----------
+let groqModels = null;
+async function listGroqModels(key) {
+  if (groqModels) return groqModels;
+  try {
+    const r = await fetch("https://api.groq.com/openai/v1/models", { headers: { authorization: "Bearer " + key } });
+    if (!r.ok) return [];
+    const j = await r.json();
+    const ids = (j.data || []).map((m) => m.id).filter((id) => !/(whisper|tts|guard|playai|orpheus|compound|safeguard)/i.test(id));
+    const rank = (id) => (/llama-3\.3-70b/i.test(id) ? 0 : /gpt-oss-120b/i.test(id) ? 1 : /llama-4/i.test(id) ? 2 : /qwen/i.test(id) ? 3 : /gpt-oss/i.test(id) ? 4 : 5);
+    groqModels = ids.sort((a, b) => rank(a) - rank(b));
+    return groqModels;
+  } catch {
+    return [];
+  }
+}
+
+async function askGroq(prompt) {
+  const key = process.env.GROQ_API_KEY.trim();
+  const preferred = (process.env.GROQ_MODEL || "llama-3.3-70b-versatile").split(",").map((m) => m.trim()).filter(Boolean);
+  const tried = new Set();
+  const candidates = [...preferred];
+  let lastErr = "";
+  const started = Date.now();
+  while (candidates.length && tried.size < 5 && Date.now() - started < 8000) {
+    const model = candidates.shift();
+    if (tried.has(model)) continue;
+    tried.add(model);
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + key },
+      body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], max_tokens: 1500, temperature: 0.7 }),
+    });
+    if (r.ok) {
+      const j = await r.json();
+      const text = j.choices?.[0]?.message?.content || "";
+      if (text) return text;
+      lastErr = `Groq ${model} returned no text`;
+    } else {
+      lastErr = `Groq ${r.status} on ${model}: ` + (await r.text()).slice(0, 250);
+      if (r.status === 401) break; // bad key: no point trying other models
+    }
+    if (!candidates.length) candidates.push(...(await listGroqModels(key)).filter((m) => !tried.has(m)));
+  }
+  throw new Error(lastErr || "No Groq model answered");
+}
+
 export default async function handler(req, res) {
-  const provider = process.env.ANTHROPIC_API_KEY ? "claude" : process.env.GEMINI_API_KEY ? "gemini" : null;
+  // Every provider that has a key, tried in this order until one answers
+  const providers = [
+    process.env.ANTHROPIC_API_KEY && ["claude", askClaude],
+    process.env.GROQ_API_KEY && ["groq", askGroq],
+    process.env.GEMINI_API_KEY && ["gemini", askGemini],
+  ].filter(Boolean);
+  const provider = providers.map((p) => p[0]).join("+") || null;
 
   // Health check used by the page to switch AI buttons on or off
   if (req.method === "GET") {
@@ -141,12 +196,16 @@ export default async function handler(req, res) {
   const prompt = String((req.body && req.body.prompt) || "").slice(0, MAX_PROMPT_CHARS);
   if (!prompt) return res.status(400).json({ error: "Missing prompt" });
 
-  try {
-    const text = provider === "claude" ? await askClaude(prompt) : await askGemini(prompt);
-    return res.status(200).json({ text });
-  } catch (e) {
-    console.error(e);
-    // Show the provider's reason (it never contains the API key) so problems are easy to fix
-    return res.status(502).json({ error: "AI request failed", detail: String(e.message || e).slice(0, 400) });
+  const errors = [];
+  for (const [name, ask] of providers) {
+    try {
+      const text = await ask(prompt);
+      return res.status(200).json({ text, provider: name });
+    } catch (e) {
+      console.error(e);
+      errors.push(String(e.message || e).slice(0, 300));
+    }
   }
+  // Show the providers' reasons (they never contain the API key) so problems are easy to fix
+  return res.status(502).json({ error: "AI request failed", detail: errors.join(" | ").slice(0, 600) });
 }
