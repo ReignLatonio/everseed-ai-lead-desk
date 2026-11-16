@@ -5,7 +5,8 @@
 //   ANTHROPIC_API_KEY  (option A) Claude API key from console.anthropic.com
 //   ANTHROPIC_MODEL    optional, default "claude-haiku-5-5"
 //   GEMINI_API_KEY     (option B) Google Gemini key from aistudio.google.com (has a free tier)
-//   GEMINI_MODEL       optional, default "gemini-2.5-flash"
+//   GEMINI_MODEL       optional, one model or a comma-separated list (default "gemini-3.8-flash");
+//                      if busy, other Flash models on the account are tried automatically
 //   ACCESS_CODE        optional. If set, the AI only answers people who enter this code.
 
 const MAX_PROMPT_CHARS = 12000;
@@ -38,40 +39,86 @@ async function askClaude(prompt) {
   return (j.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
 }
 
-async function askGemini(prompt) {
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const key = process.env.GEMINI_API_KEY.trim();
-  const body = JSON.stringify({
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: {
-      maxOutputTokens: 2048,
-      temperature: 0.7,
-      // Gemini 2.5 "thinks" out of the same token budget; switch thinking off so answers are never cut empty
-      ...(model.includes("2.5") ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
-    },
-  });
-  // Google AI Studio keys usually start with "AIza"; Vertex AI (express mode) keys start with "AQ."
-  const studio = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-  const vertex = `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent`;
-  const order = key.startsWith("AQ.") ? [vertex, studio] : [studio, vertex];
-  let lastErr = "";
-  for (const url of order) {
-    const r = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-goog-api-key": key },
-      body,
+// Models found on the key's account, cached per server instance
+let modelCache = null;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function listFlashModels(key) {
+  if (modelCache) return modelCache;
+  try {
+    const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", {
+      headers: { "x-goog-api-key": key },
     });
-    if (r.ok) {
-      const j = await r.json();
-      const text = (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
-      if (text) return text;
-      lastErr = "Gemini returned no text (finishReason: " + (j.candidates?.[0]?.finishReason || "unknown") + ")";
-      break;
-    }
-    lastErr = "Gemini " + r.status + " at " + url + ": " + (await r.text()).slice(0, 300);
-    if (![400, 401, 403, 404].includes(r.status)) break; // only try the other endpoint on auth or route errors
+    if (!r.ok) return [];
+    const j = await r.json();
+    modelCache = (j.models || [])
+      .filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
+      .map((m) => m.name.replace(/^models\//, ""))
+      .filter((n) => /flash/i.test(n) && !/(image|tts|audio|live|embed|preview-tts)/i.test(n))
+      .sort((x, y) => y.localeCompare(x, undefined, { numeric: true })); // newest first
+    return modelCache;
+  } catch {
+    return [];
   }
-  throw new Error(lastErr);
+}
+
+async function callGemini(url, key, model, prompt) {
+  return fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        maxOutputTokens: 2048,
+        temperature: 0.7,
+        ...(model.includes("2.5") ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+      },
+    }),
+  });
+}
+
+async function askGemini(prompt) {
+  const key = process.env.GEMINI_API_KEY.trim();
+  // GEMINI_MODEL may be one model or a comma-separated list, tried in order
+  const preferred = (process.env.GEMINI_MODEL || "gemini-3.8-flash").split(",").map((m) => m.trim()).filter(Boolean);
+  const tried = new Set();
+  let candidates = [...preferred];
+  let lastErr = "";
+  let attempts = 0;
+  const started = Date.now();
+
+  while (candidates.length && attempts < 6 && Date.now() - started < 8000) {
+    const model = candidates.shift();
+    if (tried.has(model)) continue;
+    tried.add(model);
+    attempts++;
+    const studio = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    const vertex = `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent`;
+    const urls = key.startsWith("AQ.") ? [studio, vertex] : [studio];
+
+    for (const url of urls) {
+      let r = await callGemini(url, key, model, prompt);
+      if (r.status === 503 || r.status === 429) {
+        await sleep(700); // one quick retry on the same model when Google is busy
+        r = await callGemini(url, key, model, prompt);
+      }
+      if (r.ok) {
+        const j = await r.json();
+        const text = (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
+        if (text) return text;
+        lastErr = `Gemini ${model} returned no text (finishReason: ${j.candidates?.[0]?.finishReason || "unknown"})`;
+        break;
+      }
+      lastErr = `Gemini ${r.status} on ${model}: ` + (await r.text()).slice(0, 250);
+      if (r.status === 503 || r.status === 429 || r.status === 404) break; // move on to another model
+    }
+    // Busy or missing model: add other Flash models this key can use
+    if (!candidates.length) {
+      const more = (await listFlashModels(key)).filter((m) => !tried.has(m));
+      candidates.push(...more);
+    }
+  }
+  throw new Error(lastErr || "No Gemini model answered");
 }
 
 export default async function handler(req, res) {
