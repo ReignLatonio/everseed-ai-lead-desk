@@ -1,0 +1,8 @@
+{
+  "name": "everseed-ai-lead-desk",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AI-powered lead CRM built by Reign Latonio for the Everseed Ventures assessment",
+  "engines": { "node": ">=18" }
+}

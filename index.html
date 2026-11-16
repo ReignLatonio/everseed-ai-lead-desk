@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Everseed AI Lead Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7f4; --panel:#ffffff; --ink:#1d2321; --muted:#66706b; --line:#e3e6e1;
+  --brand:#1f7a5a; --brand-soft:#e3f2eb; --accent:#f2b544;
+  --reclu:#2f6fd6; --yolii:#1f9a5b; --retrain:#e07a2e; --giobs:#8a4fd1;
+  --danger:#c94040; --radius:12px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,system-ui,sans-serif}
+button{font:inherit;cursor:pointer}
+header{display:flex;align-items:center;gap:16px;padding:14px 22px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
+.logo .dot{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--brand),#3fb48a);display:grid;place-items:center;color:#fff;font-size:15px}
+.logo small{display:block;font-weight:500;color:var(--muted);font-size:11.5px}
+nav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+nav a{padding:7px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-weight:600}
+nav a.on{background:var(--brand-soft);color:var(--brand)}
+main{padding:20px 22px 60px;max-width:1400px;margin:0 auto}
+.banner{background:#fff7e6;border:1px solid #f3dca8;color:#7a5a12;padding:9px 12px;border-radius:10px;margin-bottom:14px;font-size:13px;display:none}
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.kpi .n{font-size:28px;font-weight:700}
+.kpi .l{color:var(--muted);font-size:12.5px}
+h2{font-size:15px;margin:0 0 10px}
+.two{grid-template-columns:1.2fr 1fr}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;white-space:nowrap}
+.p-Reclu{background:var(--reclu)} .p-Yolii{background:var(--yolii)} .p-Retrain{background:var(--retrain)} .p-Giobs{background:var(--giobs)}
+.st{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:#eef0ec;color:#47504b}
+.st-Emailed{background:#e3ecfb;color:#2a55a0}.st-Replied{background:#fff2d4;color:#8a6210}.st-Demo-booked{background:#ddf3e6;color:#1d7046}.st-Not-interested{background:#f8e1e1;color:#9a2f2f}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 11px;font-weight:600;color:var(--ink)}
+.btn:hover{border-color:#c9cec7}
+.btn.ai{background:linear-gradient(135deg,#1f7a5a,#2f9a74);color:#fff;border:0}
+.btn.ai:hover{filter:brightness(1.07)}
+.btn.sm{padding:4px 8px;font-size:12.5px}
+.btn:disabled{opacity:.55;cursor:default}
+.muted{color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.todo{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:center}
+.todo:last-child{border-bottom:0}
+.overdue{color:var(--danger);font-weight:600}
+.due{color:#b8780c;font-weight:600}
+/* board */
+.board{display:grid;grid-template-columns:repeat(5,minmax(220px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px}
+.col{background:#eef0ec;border-radius:var(--radius);padding:10px;min-height:300px}
+.col h3{font-size:13px;margin:2px 4px 10px;display:flex;justify-content:space-between}
+.col.drag{outline:2px dashed var(--brand)}
+.lc{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:9px;cursor:grab}
+.lc b{display:block;font-size:13.5px}
+.lc .who{font-size:12.5px;color:var(--muted);margin:2px 0 7px}
+.lc .foot{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+/* table */
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#f0f2ee;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+tr:hover td{background:#fafbf9}
+a{color:var(--brand)}
+.tablewrap{overflow-x:auto}
+/* drawer & modal */
+.scrim{position:fixed;inset:0;background:rgba(20,25,22,.35);display:none;z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:#fff;z-index:21;transform:translateX(100%);transition:transform .2s;overflow-y:auto;padding:20px;box-shadow:-10px 0 30px rgba(0,0,0,.08)}
+.drawer.open{transform:none}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:6px 10px;font-size:13px;margin:12px 0}
+.kv div:nth-child(odd){color:var(--muted)}
+.ai-box{background:#f4faf7;border:1px solid #cfe8dc;border-radius:10px;padding:12px;margin-top:10px;white-space:pre-wrap;font-size:13px}
+.ai-box h4{margin:8px 0 4px;font-size:13px}
+.ai-box ul{margin:4px 0 4px 18px;padding:0}
+textarea,input,select{font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px;width:100%;background:#fff;color:var(--ink)}
+textarea{min-height:120px;resize:vertical}
+label{font-size:12.5px;font-weight:600;color:var(--muted);display:block;margin:10px 0 4px}
+.log{font-size:12.5px;border-left:2px solid var(--line);padding-left:10px;margin-top:6px}
+.log div{margin-bottom:5px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:s .8s linear infinite;vertical-align:-2px}
+.spin.dark{border-color:var(--brand);border-top-color:transparent}
+@keyframes s{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d2321;color:#fff;padding:9px 14px;border-radius:10px;font-size:13px;z-index:40;display:none}
+.score{font-size:26px;font-weight:700;color:var(--brand)}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="dot">✦</div><div>Everseed AI Lead Desk<small>Built by Reign Latonio with Claude</small></div></div>
+  <nav>
+    <a href="#dashboard" data-v="dashboard">Dashboard</a>
+    <a href="#pipeline" data-v="pipeline">Pipeline</a>
+    <a href="#leads" data-v="leads">Leads</a>
+    <a href="#qualify" data-v="qualify">✨ AI Qualifier</a>
+  </nav>
+</header>
+<main>
+  <div class="banner" id="banner"></div>
+
+  <!-- DASHBOARD -->
+  <section id="v-dashboard">
+    <div class="grid kpis" id="kpis"></div>
+    <div class="grid two" style="margin-top:14px">
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2>Today's actions</h2><span class="muted" id="todayLbl"></span></div>
+        <div id="todos"></div>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2>✨ AI daily briefing</h2><button class="btn ai sm aiOnly" id="briefBtn">Generate</button></div>
+        <div id="brief" class="muted">Claude reviews your pipeline and tells you who to contact first today, and why.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>How the automation works</h2>
+      <div class="muted" style="font-size:13px">
+        1. <b>AI Qualifier</b> reads a company or job post, picks the best product (Reclu, Yolii, Retrain, Giobs), scores fit and adds the lead.<br>
+        2. <b>AI email writer</b> drafts a personalised email from the lead's hiring pain and product.<br>
+        3. Click <b>Mark as sent</b>: the lead moves to Emailed, a follow-up is scheduled for 3 days later and the activity is logged.<br>
+        4. Status changes set the next step automatically (Replied → book demo in 1 day, Demo booked → send prep, Not interested → re-engage in 90 days).<br>
+        5. Overdue follow-ups surface here in <b>Today's actions</b>, so no lead is forgotten.
+      </div>
+    </div>
+  </section>
+
+  <!-- PIPELINE -->
+  <section id="v-pipeline" class="hide">
+    <p class="muted" style="margin-top:0">Drag a card to another stage. The next step and follow-up date update automatically.</p>
+    <div class="board" id="board"></div>
+  </section>
+
+  <!-- LEADS -->
+  <section id="v-leads" class="hide">
+    <div class="row" style="margin-bottom:10px">
+      <input id="q" placeholder="Search company, person, industry…" style="max-width:320px">
+      <select id="fProd" style="max-width:160px"><option value="">All products</option><option>Reclu</option><option>Yolii</option><option>Retrain</option><option>Giobs</option></select>
+      <select id="fStat" style="max-width:170px"><option value="">All stages</option></select>
+      <button class="btn" id="copyCsv">Copy as CSV</button>
+      <button class="btn" id="dlCsv">Download CSV</button>
+      <button class="btn" id="resetData" style="margin-left:auto">Reset demo data</button>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>Company</th><th>Decision-maker</th><th>Product</th><th>Stage</th><th>Next step</th><th>Follow-up</th><th>LinkedIn</th></tr></thead><tbody id="tbody"></tbody></table></div>
+  </section>
+
+  <!-- QUALIFIER -->
+  <section id="v-qualify" class="hide">
+    <div class="grid two">
+      <div class="card">
+        <h2>✨ AI Lead Qualifier</h2>
+        <p class="muted" style="margin-top:0">Paste anything about a prospect: a company name, a job post, an "About us" page or your notes. Claude checks it against Everseed's ideal customer and matches the right product.</p>
+        <label>Company / job post / notes</label>
+        <textarea id="qText" placeholder="e.g. BrightSmile Dental Group, 9 clinics in Texas, ~140 employees, hiring 6 front-desk staff a month, tracks applicants in spreadsheets…"></textarea>
+        <div class="row" style="margin-top:10px"><button class="btn ai aiOnly" id="qBtn">Qualify with AI</button><span class="muted aiOff hide">AI is off. Add an API key in Vercel to turn it on.</span></div>
+      </div>
+      <div class="card" id="qOut"><h2>Result</h2><div class="muted">The verdict appears here.</div></div>
+    </div>
+  </section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer"></aside>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- constants ---------- */
+const STAGES=["Not contacted","Emailed","Replied","Demo booked","Not interested"];
+const PRODUCTS={
+  Reclu:"Reclu (reclu.co): an AI that interviews and ranks applicants. Best when a company gets many applicants per opening and screening eats recruiter or manager time (staffing agencies, gyms, multi-location clinics).",
+  Yolii:"Yolii (yolii.co): structured hiring instead of email and spreadsheets. Best for growing teams still tracking applicants by hand with no real applicant tracking system.",
+  Retrain:"Retrain (tryretrain.com): AI role-play practice so new hires improve faster. Best for customer-facing roles where ramp-up is slow: front desk and patient calls, sales, dealership BDC, customer service.",
+  Giobs:"Giobs (giobs.app): AI-powered HR and recruiting software in one. Best for companies building or professionalising their HR function across several locations."
+};
+const ICP="Everseed Ventures sells HR software to US and Canadian companies with 20 to 500 employees that hire often (clinics, dealerships, gyms, staffing agencies).";
+const SENDER="Reign Latonio, Everseed Ventures";
+/* Read-only snapshot, shown only when this view cannot reach the live database */
+const SNAPSHOT=[
+ {n:1,company:"Trinity Dental Centers",name:"Ruben Lopez",title:"Director of Operations",linkedin:"https://www.linkedin.com/in/ruben-lopez-39aab125/",product:"Retrain",industry:"Dental group",location:"Houston, TX",size:"17 clinics in Texas",why:"Many front desks handling patient calls. New hires need to ramp up faster.",status:"Not contacted"},
+ {n:2,company:"Keeter & Geiger Dentistry",name:"Dr. Courtney Ladewig",title:"Practice Owner / Dentist",linkedin:"https://www.linkedin.com/in/courtney-ladewig-117aa649/",product:"Yolii",industry:"Dental practice",location:"Dallas, TX",size:"Single high-production practice",why:"Recently hired for a Director of Practice Operations. Growing team, likely hiring through email and spreadsheets.",status:"Not contacted"},
+ {n:3,company:"Baleo Fitness Inc.",name:"John Christopher",title:"Co-Founder",linkedin:"https://www.linkedin.com/in/john-christopher-a0a36522/",product:"Reclu",industry:"Gyms (Anytime Fitness franchisee)",location:"Chicago, IL",size:"70+ gym locations",why:"Constant openings across 8 states. High applicant volume for front desk and trainers.",status:"Not contacted"},
+ {n:4,company:"AutoIQ Dealership Group",name:"Andrew Ojamae",title:"President & CEO",linkedin:"https://www.linkedin.com/in/andrew-ojamae-87a3972/",product:"Retrain",industry:"Car dealerships",location:"Oakville, ON, Canada",size:"8 dealerships",why:"Investing in employee experience and learning. New sales and BDC hires need faster ramp-up.",status:"Not contacted"},
+ {n:5,company:"Wise Auto Group",name:"Trenton Lukens",title:"Director of Finance and Operations",linkedin:"https://www.linkedin.com/in/trenton-lukens-08315a208/",product:"Yolii",industry:"Car dealerships",location:"Vacaville, CA",size:"Multi-rooftop group",why:"Hiring an HR Director to run HR across rooftops. Needs structured hiring.",status:"Not contacted"},
+ {n:6,company:"Jarrett Ford Automotive Group",name:"Sid Jarrett",title:"Company Owner",linkedin:"https://www.linkedin.com/in/sid-jarrett-98a32a35b/",product:"Giobs",industry:"Car dealerships",location:"Central Florida",size:"7 dealership locations",why:"Hiring a Director of HR, Safety & Compliance for 7 stores.",status:"Not contacted"},
+ {n:7,company:"Labor Staffing, Inc.",name:"Jon Walchle",title:"Founder & President",linkedin:"https://www.linkedin.com/in/jonwalchle/",product:"Reclu",industry:"Staffing (light industrial)",location:"Decatur, GA",size:"Branches in 7 states",why:"High-volume temp hiring. AI interviews screen and rank applicants 24/7.",status:"Not contacted"},
+ {n:8,company:"BOLT Staffing Service",name:"Calvin Sanders",title:"CEO",linkedin:"https://www.linkedin.com/in/itscalvin/",product:"Reclu",industry:"Staffing",location:"Sonoma, CA",size:"3 offices",why:"Warehouse, hospitality and winery roles with large applicant pools.",status:"Not contacted"},
+ {n:9,company:"Express Employment Professionals (Indy South & Columbus)",name:"Mike Heffner",title:"Owner / President",linkedin:"https://www.linkedin.com/in/mikeheffner/",product:"Reclu",industry:"Staffing franchise",location:"Greenwood & Columbus, IN",size:"2 offices",why:"Light industrial, skilled and office roles across 7 counties.",status:"Not contacted"},
+ {n:10,company:"Express Employment Professionals (Coeur d'Alene)",name:"Jessica Bauman",title:"Owner",linkedin:"https://www.linkedin.com/in/jessica-l-bauman-helpingpeoplesucceed/",product:"Reclu",industry:"Staffing franchise",location:"Coeur d'Alene, ID",size:"3 full-time recruiters",why:"Small recruiting team placing many workers. AI screening multiplies capacity.",status:"Not contacted"}
+];
+
+/* ---------- state ---------- */
+let leads=[]; let sample=false; let openId=null;
+const STORE_KEY="everseed-crm-leads-v1", CODE_KEY="everseed-crm-access-code";
+function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(leads))}catch{toast("Could not save in this browser")}}
+function seedLeads(){return SNAPSHOT.map(l=>({id:"L"+String(l.n).padStart(2,"0"),...l,...autoFor(l.status),activity:[{date:today(),text:"Lead researched and verified"}]}))}
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const addDays=(n)=>{const d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const fmt=d=>{if(!d)return"";const [y,m,dd]=d.split("-").map(Number);return new Date(y,m-1,dd).toLocaleDateString("en-US",{month:"short",day:"numeric"})};
+const stCls=s=>"st st-"+String(s).replace(/ /g,"-");
+const noDash=t=>String(t||"").replace(/\s*[—–]\s*/g,", ");
+function toast(m){const t=$("#toast");t.textContent=m;t.style.display="block";clearTimeout(toast._t);toast._t=setTimeout(()=>t.style.display="none",2600)}
+function banner(m){const b=$("#banner");if(!m){b.style.display="none";return}b.textContent=m;b.style.display="block"}
+
+/* automation: what a stage change sets */
+function autoFor(status){
+  switch(status){
+    case "Not contacted":return {next:"Send intro email",followUp:today()};
+    case "Emailed":return {next:"Follow-up #1 (curious question)",followUp:addDays(3),lastContact:today()};
+    case "Replied":return {next:"Book the demo",followUp:addDays(1),lastContact:today()};
+    case "Demo booked":return {next:"Send demo prep and reminder",followUp:addDays(1),lastContact:today()};
+    case "Not interested":return {next:"Re-engage later",followUp:addDays(90),lastContact:today()};
+  }
+  return {};
+}
+
+/* ---------- data ---------- */
+async function saveLead(id,patch,logText){
+  const L=leads.find(x=>x.id===id); if(!L) return;
+  const activity=[...(L.activity||[])];
+  if(logText) activity.unshift({date:today(),text:logText});
+  Object.assign(L,{...patch,activity:activity.slice(0,40)});
+  persist(); renderAll();
+}
+async function setStatus(id,status){
+  const L=leads.find(x=>x.id===id); if(!L||L.status===status) return;
+  await saveLead(id,{status,...autoFor(status)},`Stage: ${L.status} → ${status}`);
+}
+async function addLead(obj){
+  const doc={...obj,status:"Not contacted",...autoFor("Not contacted"),activity:[{date:today(),text:"Added by AI Qualifier"}],createdAt:Date.now(),n:leads.length+1};
+  leads.push({id:"L"+Date.now(),...doc}); persist(); renderAll(); toast("Lead added to CRM");
+}
+
+/* ---------- render ---------- */
+function renderAll(){renderKpis();renderTodos();renderBoard();renderTable();if(openId)renderDrawer(openId)}
+function renderKpis(){
+  const c=s=>leads.filter(l=>l.status===s).length;
+  const contacted=leads.filter(l=>l.status!=="Not contacted").length;
+  const replied=c("Replied")+c("Demo booked");
+  const rate=contacted?Math.round(replied/contacted*100):0;
+  const due=leads.filter(l=>l.followUp&&l.followUp<=today()&&l.status!=="Not interested").length;
+  $("#kpis").innerHTML=[
+    ["Total leads",leads.length],["Contacted",contacted],["Reply rate",rate+"%"],["Demos booked",c("Demo booked")],["Actions due today",due]
+  ].map(([l,n])=>`<div class="card kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+}
+function renderTodos(){
+  $("#todayLbl").textContent=new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
+  const t=today();
+  const items=leads.filter(l=>l.followUp&&l.followUp<=t&&l.status!=="Not interested").sort((a,b)=>(a.followUp||"").localeCompare(b.followUp||""));
+  $("#todos").innerHTML=items.length?items.map(l=>{
+    const od=l.followUp<t;
+    return `<div class="todo"><div><b>${esc(l.company)}</b><div class="muted" style="font-size:12.5px">${esc(l.name)} · ${esc(l.next||"")}</div></div>
+    <div class="row"><span class="${od?"overdue":"due"}">${od?"Overdue "+fmt(l.followUp):"Due today"}</span><button class="btn sm" data-open="${l.id}">Open</button></div></div>`}).join("")
+    :`<div class="muted">Nothing due. Nice work.</div>`;
+}
+function card(l){
+  const t=today(); const od=l.followUp&&l.followUp<t&&l.status!=="Not interested";
+  return `<div class="lc" draggable="true" data-id="${l.id}" data-open="${l.id}">
+    <b>${esc(l.company)}</b><div class="who">${esc(l.name)} · ${esc(l.title)}</div>
+    <div class="foot"><span class="pill p-${esc(l.product)}">${esc(l.product)}</span><span class="${od?"overdue":"muted"}">${l.followUp&&l.status!=="Not interested"?(od?"Overdue ":"")+fmt(l.followUp):""}</span></div></div>`;
+}
+function renderBoard(){
+  $("#board").innerHTML=STAGES.map(s=>{const ls=leads.filter(l=>l.status===s);
+    return `<div class="col" data-stage="${s}"><h3><span>${s}</span><span class="muted">${ls.length}</span></h3>${ls.map(card).join("")}</div>`}).join("");
+}
+function renderTable(){
+  const q=$("#q").value.toLowerCase(),p=$("#fProd").value,s=$("#fStat").value;
+  const rows=leads.filter(l=>(!p||l.product===p)&&(!s||l.status===s)&&(!q||[l.company,l.name,l.industry,l.location,l.title].join(" ").toLowerCase().includes(q)));
+  $("#tbody").innerHTML=rows.map(l=>`<tr data-open="${l.id}" style="cursor:pointer">
+    <td><b>${esc(l.company)}</b><div class="muted" style="font-size:12px">${esc(l.industry)} · ${esc(l.location)}</div></td>
+    <td>${esc(l.name)}<div class="muted" style="font-size:12px">${esc(l.title)}</div></td>
+    <td><span class="pill p-${esc(l.product)}">${esc(l.product)}</span></td>
+    <td><span class="${stCls(l.status)}">${esc(l.status)}</span></td>
+    <td>${esc(l.next||"")}</td><td>${fmt(l.followUp)}</td>
+    <td>${l.linkedin?`<a href="${esc(l.linkedin)}" target="_blank" rel="noopener">Profile ↗</a>`:""}</td></tr>`).join("")||`<tr><td colspan="7" class="muted">No leads match.</td></tr>`;
+}
+function renderDrawer(id){
+  const l=leads.find(x=>x.id===id); if(!l){closeDrawer();return}
+  const d=$("#drawer");
+  d.innerHTML=`<div class="row" style="justify-content:space-between"><span class="pill p-${esc(l.product)}">${esc(l.product)}</span><button class="btn sm" id="closeD">Close</button></div>
+  <h2 style="font-size:19px;margin:12px 0 2px">${esc(l.company)}</h2>
+  <div class="muted">${esc(l.name)} · ${esc(l.title)}</div>
+  <div class="kv">
+    <div>Stage</div><div><select id="dStage" style="max-width:200px">${STAGES.map(s=>`<option ${s===l.status?"selected":""}>${s}</option>`).join("")}</select></div>
+    <div>Next step</div><div>${esc(l.next||"")}</div>
+    <div>Follow-up</div><div>${fmt(l.followUp)||"-"}</div>
+    <div>Last contact</div><div>${fmt(l.lastContact)||"-"}</div>
+    <div>Industry</div><div>${esc(l.industry)}</div>
+    <div>Location</div><div>${esc(l.location)}</div>
+    <div>Size</div><div>${esc(l.size)}</div>
+    <div>Why ${esc(l.product)}</div><div>${esc(l.why)}</div>
+    <div>LinkedIn</div><div>${l.linkedin?`<a href="${esc(l.linkedin)}" target="_blank" rel="noopener">${esc(l.linkedin.replace("https://www.",""))}</a>`:"-"}</div>
+    ${l.verified?`<div>Verified via</div><div>${esc(l.verified)}</div>`:""}
+  </div>
+  <div class="row aiOnly">
+    <button class="btn ai" data-ai="email">✨ Write intro email</button>
+    <button class="btn ai" data-ai="followup">✨ Write follow-up</button>
+    <button class="btn ai" data-ai="call">✨ Call prep</button>
+  </div>
+  <div class="muted aiOff hide" style="font-size:12.5px">AI is off. Add an API key in Vercel to turn it on.</div>
+  <div id="aiOut"></div>
+  <label>Notes</label>
+  <textarea id="dNotes" style="min-height:70px" placeholder="Anything you learned…">${esc(l.notes||"")}</textarea>
+  <div class="row" style="margin-top:6px"><button class="btn sm" id="saveNotes">Save notes</button></div>
+  <label>Activity</label>
+  <div class="log">${(l.activity||[]).map(a=>`<div><span class="muted">${fmt(a.date)}</span> ${esc(a.text)}</div>`).join("")||'<div class="muted">No activity yet.</div>'}</div>`;
+  applyAiVisibility();
+}
+function openDrawer(id){openId=id;renderDrawer(id);$("#drawer").classList.add("open");$("#scrim").style.display="block"}
+function closeDrawer(){openId=null;$("#drawer").classList.remove("open");$("#scrim").style.display="none"}
+function applyAiVisibility(){document.querySelectorAll(".aiOnly").forEach(e=>e.classList.toggle("hide",!sample));document.querySelectorAll(".aiOff").forEach(e=>e.classList.toggle("hide",!!sample))}
+
+/* ---------- AI ---------- */
+function leadBrief(l){return `Company: ${l.company}\nDecision-maker: ${l.name}, ${l.title}\nIndustry: ${l.industry}\nLocation: ${l.location}\nSize: ${l.size}\nBest product: ${l.product}. ${PRODUCTS[l.product]||""}\nHiring signal / why: ${l.why}\nStage: ${l.status}\nLast contact: ${l.lastContact||"none"}\nNotes: ${l.notes||"none"}`}
+const STYLE="Write as a friendly, sharp SDR. Plain English, short sentences, no hype, no em dashes or en dashes. Under 120 words for the body. Do not invent facts, numbers or customer names. One clear, low-friction ask (a 15-minute demo). Sign off as: "+SENDER+".";
+function parseJson(t){const s=t.indexOf("{"),e=t.lastIndexOf("}");if(s<0||e<s)throw{message:"Bad AI format"};return JSON.parse(t.slice(s,e+1))}
+async function aiCall(prompt,json,retried){
+  if(!sample) throw {message:"AI unavailable"};
+  let code=""; try{code=localStorage.getItem(CODE_KEY)||""}catch{}
+  const r=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json","x-access-code":code},
+    body:JSON.stringify({prompt:prompt+(json?"\nRespond with the JSON object only, no other text.":""),})});
+  if(r.status===401&&!retried){
+    const c=window.prompt("Enter the access code to use the AI features:");
+    if(c){try{localStorage.setItem(CODE_KEY,c.trim())}catch{} return aiCall(prompt,json,true)}
+    throw {code:"unauthorized"};
+  }
+  if(r.status===429) throw {code:"rate_limited"};
+  if(!r.ok) throw {message:"AI error "+r.status};
+  const {text}=await r.json();
+  return json?parseJson(text):text;
+}
+async function doAi(kind,btn){
+  const l=leads.find(x=>x.id===openId); if(!l)return;
+  const out=$("#aiOut"); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Thinking…';
+  try{
+    if(kind==="call"){
+      const r=await aiCall(`${ICP}\nYou are coaching a sales rep before a cold call to book a demo.\n${leadBrief(l)}\nReturn JSON: {"opener": string (2 sentences), "questions": [4 discovery questions tied to their hiring pain], "objections": [{"objection": string, "response": string} x3, include "no budget" and "we tried software before and nobody used it"], "close": string (the demo ask)}. No em dashes.`,true);
+      out.innerHTML=`<div class="ai-box"><h4>Opener</h4>${esc(noDash(r.opener))}<h4>Discovery questions</h4><ul>${(r.questions||[]).map(q=>`<li>${esc(noDash(q))}</li>`).join("")}</ul><h4>Objection handling</h4><ul>${(r.objections||[]).map(o=>`<li><b>${esc(noDash(o.objection))}</b><br>${esc(noDash(o.response))}</li>`).join("")}</ul><h4>Close</h4>${esc(noDash(r.close))}</div>`;
+    }else{
+      const task=kind==="email"?"Write a first-touch cold email. Open with their specific hiring situation, connect it to the product's outcome, then ask for a 15-minute demo.":"Write a short follow-up to an email that got no reply yet. Do not say goodbye or close the file. Keep the conversation going: one curious question about their hiring, lower the risk (quick look, no commitment), and an easy next step.";
+      const r=await aiCall(`${ICP}\n${task}\n${STYLE}\n${leadBrief(l)}\nReturn JSON: {"subject": string, "body": string}`,true);
+      const subject=noDash(r.subject), body=noDash(r.body);
+      out.innerHTML=`<div class="ai-box"><b>Subject:</b> ${esc(subject)}\n\n${esc(body)}</div>
+      <div class="row" style="margin-top:8px"><button class="btn sm" id="cpy">Copy email</button><button class="btn sm ai" id="sent">Mark as sent → schedule follow-up</button></div>`;
+      $("#cpy").onclick=async()=>{try{await navigator.clipboard.writeText("Subject: "+subject+"\n\n"+body);toast("Copied")}catch{toast("Select the text to copy")}};
+      $("#sent").onclick=async()=>{
+        const status=l.status==="Not contacted"?"Emailed":l.status;
+        const patch=status!==l.status?{status,...autoFor(status)}:{lastContact:today(),followUp:addDays(3),next:"Follow-up #2"};
+        await saveLead(l.id,patch,(kind==="email"?"Intro email sent: ":"Follow-up sent: ")+subject);
+        toast("Logged. Follow-up set for "+fmt(addDays(3)));
+      };
+    }
+  }catch(e){out.innerHTML=`<div class="ai-box">${e&&e.code==="rate_limited"?"AI is busy. Wait a moment and try again.":"AI could not answer this time. Try again."}</div>`}
+  finally{btn.disabled=false;btn.innerHTML=old}
+}
+async function doBrief(){
+  const b=$("#briefBtn"),out=$("#brief"); b.disabled=true; const old=b.innerHTML; b.innerHTML='<span class="spin"></span>';
+  try{
+    const list=leads.map(l=>`- ${l.company} | ${l.name}, ${l.title} | ${l.product} | stage: ${l.status} | follow-up: ${l.followUp||"none"} | why: ${l.why}`).join("\n");
+    const r=await aiCall(`${ICP}\nToday is ${today()}. Here is the SDR's pipeline:\n${list}\nReturn JSON: {"summary": one sentence on pipeline health, "priorities": [{"company": string, "action": string, "reason": string} x3, the three leads to work first today and why]}. No em dashes.`,true);
+    out.classList.remove("muted");
+    out.innerHTML=`<div>${esc(noDash(r.summary))}</div><ol style="padding-left:18px;margin:8px 0 0">${(r.priorities||[]).map(p=>`<li style="margin-bottom:6px"><b>${esc(p.company)}</b>: ${esc(noDash(p.action))}<div class="muted" style="font-size:12.5px">${esc(noDash(p.reason))}</div></li>`).join("")}</ol>`;
+  }catch(e){out.textContent="AI could not answer this time. Try again."}
+  finally{b.disabled=false;b.innerHTML=old}
+}
+let lastQ=null;
+async function doQualify(){
+  const txt=$("#qText").value.trim(); if(!txt){toast("Paste something about the company first");return}
+  const b=$("#qBtn"),out=$("#qOut"); b.disabled=true; const old=b.innerHTML; b.innerHTML='<span class="spin"></span> Qualifying…';
+  try{
+    const r=await aiCall(`${ICP}\nProducts:\n- ${Object.values(PRODUCTS).join("\n- ")}\n\nQualify this prospect using ONLY the text below. If something is unknown, say "Unknown" rather than guessing names or URLs.\n---\n${txt}\n---\nReturn JSON: {"company": string, "industry": string, "location": string, "size": string, "decisionMaker": string, "title": string (the role to target if no name is given), "linkedin": string or "", "fitScore": integer 1-10 against the ideal customer, "product": one of "Reclu","Yolii","Retrain","Giobs", "why": one sentence linking their hiring pain to that product, "redFlags": string or "None", "firstLine": a personalised first line for a cold email}. No em dashes.`,true);
+    if(!PRODUCTS[r.product]) r.product="Yolii";
+    lastQ=r;
+    out.innerHTML=`<h2>Result</h2><div class="row" style="justify-content:space-between"><div><b style="font-size:16px">${esc(r.company)}</b><div class="muted">${esc(r.industry)} · ${esc(r.location)} · ${esc(r.size)}</div></div><div style="text-align:right"><div class="score">${esc(r.fitScore)}/10</div><div class="muted" style="font-size:12px">ICP fit</div></div></div>
+    <div class="kv"><div>Best product</div><div><span class="pill p-${esc(r.product)}">${esc(r.product)}</span></div><div>Why</div><div>${esc(noDash(r.why))}</div><div>Target</div><div>${esc(r.decisionMaker)}, ${esc(r.title)}</div><div>Red flags</div><div>${esc(noDash(r.redFlags))}</div><div>First line</div><div>${esc(noDash(r.firstLine))}</div></div>
+    <button class="btn ai" id="addQ">+ Add to CRM</button>`;
+    $("#addQ").onclick=async()=>{await addLead({company:r.company,name:r.decisionMaker,title:r.title,linkedin:/^https:\/\/(www\.)?linkedin\.com\//.test(r.linkedin||"")?r.linkedin:"",product:r.product,industry:r.industry,location:r.location,size:r.size,why:noDash(r.why),fitScore:r.fitScore});$("#addQ").disabled=true};
+  }catch(e){out.innerHTML=`<h2>Result</h2><div class="muted">AI could not answer this time. Try again.</div>`}
+  finally{b.disabled=false;b.innerHTML=old}
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+  const ai=e.target.closest("[data-ai]"); if(ai){doAi(ai.dataset.ai,ai);return}
+  if(e.target.id==="closeD"||e.target.id==="scrim"){closeDrawer();return}
+  if(e.target.id==="saveNotes"){saveLead(openId,{notes:$("#dNotes").value},"Notes updated");toast("Notes saved");return}
+  const o=e.target.closest("[data-open]"); if(o&&!e.target.closest("a")){openDrawer(o.dataset.open)}
+});
+document.addEventListener("change",e=>{if(e.target.id==="dStage")setStatus(openId,e.target.value)});
+$("#briefBtn").onclick=doBrief; $("#qBtn").onclick=doQualify;
+["q","fProd","fStat"].forEach(id=>$("#"+id).addEventListener("input",renderTable));
+$("#fStat").innerHTML+=STAGES.map(s=>`<option>${s}</option>`).join("");
+$("#copyCsv").onclick=async()=>{
+  const cols=["company","name","title","linkedin","product","industry","location","size","status","next","followUp","lastContact"];
+  const csv=[cols.join(",")].concat(leads.map(l=>cols.map(c=>'"'+String(l[c]??"").replace(/"/g,'""')+'"').join(","))).join("\n");
+  try{await navigator.clipboard.writeText(csv);toast("CSV copied. Paste into Excel or Sheets.")}catch{toast("Copy was blocked by the browser")}
+};
+/* drag and drop */
+let dragId=null;
+document.addEventListener("dragstart",e=>{const c=e.target.closest(".lc");if(c){dragId=c.dataset.id;e.dataTransfer.effectAllowed="move"}});
+document.addEventListener("dragover",e=>{const col=e.target.closest(".col");if(col&&dragId){e.preventDefault();document.querySelectorAll(".col").forEach(x=>x.classList.toggle("drag",x===col))}});
+document.addEventListener("drop",e=>{const col=e.target.closest(".col");document.querySelectorAll(".col").forEach(x=>x.classList.remove("drag"));if(col&&dragId){e.preventDefault();setStatus(dragId,col.dataset.stage);dragId=null}});
+document.addEventListener("dragend",()=>{dragId=null;document.querySelectorAll(".col").forEach(x=>x.classList.remove("drag"))});
+/* routing */
+function route(){const v=(location.hash||"#dashboard").slice(1);const ok=["dashboard","pipeline","leads","qualify"].includes(v)?v:"dashboard";
+  ["dashboard","pipeline","leads","qualify"].forEach(x=>$("#v-"+x).classList.toggle("hide",x!==ok));
+  document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.v===ok))}
+window.addEventListener("hashchange",route); route();
+
+/* ---------- boot ---------- */
+(function boot(){
+  let saved=null; try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}
+  leads=Array.isArray(saved)&&saved.length?saved:seedLeads();
+  if(!saved) persist();
+  renderAll(); applyAiVisibility();
+  fetch("/api/ai").then(r=>r.json()).then(j=>{sample=!!j.ok;applyAiVisibility();if(openId)renderDrawer(openId);
+    if(!j.ok)banner("AI features are off: add an API key in Vercel (see README).")}).catch(()=>{sample=false;applyAiVisibility();banner("AI features need the /api/ai server function (deploy on Vercel).")});
+})();
+$("#resetData").onclick=()=>{if(window.confirm("Reset the CRM to the original 10 leads? Your changes in this browser will be lost.")){leads=seedLeads();persist();closeDrawer();renderAll();toast("CRM reset")}};
+$("#dlCsv").onclick=()=>{
+  const cols=["company","name","title","linkedin","product","industry","location","size","status","next","followUp","lastContact","why"];
+  const csv=[cols.join(",")].concat(leads.map(l=>cols.map(c=>'"'+String(l[c]??"").replace(/"/g,'""')+'"').join(","))).join("\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="everseed-leads-"+today()+".csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+</script>
+</body>
+</html>
